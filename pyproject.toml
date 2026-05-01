@@ -25,6 +25,7 @@ central_server_app_foundation = [
     "design/templates/**/*.html",
     "design/static/*.js",
     "design/static/*.css",
+    "design/static/fonts/*.woff2",
     "settings_ui/templates/**/*.html",
     "settings_ui/static/*.css",
     "auth_ui/templates/**/*.html",
