@@ -138,6 +138,7 @@
                         {{ current_user }}
                         {% if is_admin %}<span class="admin-badge-sm">{{ _('admin') }}</span>{% endif %}
                         {% if is_guest %}<span class="guest-badge-sm">{{ _('guest') }}</span>{% endif %}
+                        {% if not is_admin and not is_guest and current_role %}<span class="role-badge-sm">{{ current_role }}</span>{% endif %}
                     </span>
                 </a>
                 {% endif %}
