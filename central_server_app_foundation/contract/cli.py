@@ -1,9 +1,10 @@
 """Supervisor-contract CLI helpers.
 
-Every Conter app exposes the same nine flags to `conter_central_server`:
+Every Conter app exposes the same contract flags to `conter_central_server`:
 
     --headless --host --port --log-level --data-dir
     --shutdown-token --prefix --info --version
+    --auth-url --auth-key --sso-secret          (v1.4)
 
 This module ships the parser and the env-var propagation so each app's
 `run.py` only adds its own app-specific flags (e.g. `--desktop` for
@@ -109,6 +110,26 @@ def build_parser(
         "url_for() and cookies use the correct path (v1.3).",
     )
     parser.add_argument(
+        "--auth-url",
+        default=None,
+        help="Base URL of the Conter Central auth API (e.g. "
+        "http://127.0.0.1:5000). When set, credentials are verified "
+        "against the Central instead of the local user DB (v1.4).",
+    )
+    parser.add_argument(
+        "--auth-key",
+        default=None,
+        help="Service key (bearer token) authenticating this app "
+        "against the Central auth API (v1.4).",
+    )
+    parser.add_argument(
+        "--sso-secret",
+        default=None,
+        help="Shared secret to validate the Central's SSO cookie. "
+        "When set, the app's own login is replaced by single sign-on "
+        "through the Central (v1.4).",
+    )
+    parser.add_argument(
         "--info",
         action="store_true",
         help="Print app metadata as JSON and exit (v1.2). No Flask boot, "
@@ -179,6 +200,18 @@ def apply_contract_env(args: argparse.Namespace) -> None:
     prefix = normalize_prefix(getattr(args, "prefix", "") or "")
     if prefix:
         os.environ["CONTER_URL_PREFIX"] = prefix
+
+    auth_url = getattr(args, "auth_url", None)
+    if auth_url:
+        os.environ["CONTER_AUTH_URL"] = auth_url.rstrip("/")
+
+    auth_key = getattr(args, "auth_key", None)
+    if auth_key:
+        os.environ["CONTER_AUTH_KEY"] = auth_key
+
+    sso_secret = getattr(args, "sso_secret", None)
+    if sso_secret:
+        os.environ["CONTER_SSO_SECRET"] = sso_secret
 
 
 def normalize_prefix(raw: str) -> str:

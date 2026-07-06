@@ -158,6 +158,53 @@ class TestLogin:
         assert resp.status_code == 302
 
 
+class TestLoginNext:
+    """Safe ?next= handling — the SSO entry point for subapp bounces."""
+
+    def test_next_relative_path_honoured(self, app):
+        c = app.test_client()
+        resp = c.post("/login?next=/somewhere", data={
+            "username": "admin", "password": "adminpass",
+        })
+        assert resp.status_code == 302
+        assert resp.headers["Location"] == "/somewhere"
+
+    def test_next_same_host_other_port_honoured(self, app):
+        c = app.test_client()
+        resp = c.post(
+            "/login?next=http://localhost:5001/editor",
+            data={"username": "admin", "password": "adminpass"},
+            base_url="http://localhost:5000",
+        )
+        assert resp.headers["Location"] == "http://localhost:5001/editor"
+
+    def test_next_foreign_host_ignored(self, app):
+        c = app.test_client()
+        resp = c.post(
+            "/login?next=http://evil.example.com/",
+            data={"username": "admin", "password": "adminpass"},
+        )
+        assert resp.headers["Location"].endswith("/")
+        assert "evil" not in resp.headers["Location"]
+
+    def test_next_protocol_relative_ignored(self, app):
+        c = app.test_client()
+        resp = c.post(
+            "/login?next=//evil.example.com/",
+            data={"username": "admin", "password": "adminpass"},
+        )
+        assert "evil" not in resp.headers["Location"]
+
+    def test_next_rendered_as_hidden_field(self, app):
+        resp = app.test_client().get("/login?next=/somewhere")
+        assert b'name="next" value="/somewhere"' in resp.data
+
+    def test_next_honoured_when_already_logged_in(self, logged_in):
+        resp = logged_in.get("/login?next=/elsewhere")
+        assert resp.status_code == 302
+        assert resp.headers["Location"] == "/elsewhere"
+
+
 class TestGuestLogin:
     def test_guest_login_sets_guest_session(self, app):
         c = app.test_client()

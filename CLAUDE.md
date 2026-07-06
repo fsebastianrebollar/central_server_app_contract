@@ -69,8 +69,14 @@ central_server_app_foundation/
 │   ├── cli.py                          # build_parser / handle_preboot_flags / apply_contract_env
 │   └── data_paths.py                   # get_data_dir / override_path
 ├── auth/
-│   ├── __init__.py                     # exports UserStore, VALID_ROLES, can_publish
-│   └── user_store.py                   # SQLite user store
+│   ├── __init__.py                     # exports UserStore, RemoteUserStore, make_user_store, VALID_ROLES, can_publish
+│   ├── user_store.py                   # SQLite user store (is_remote = False)
+│   ├── remote_store.py                 # RemoteUserStore — same interface, backed by Conter Central /api/auth/v1 (urllib, bearer key)
+│   └── factory.py                      # make_user_store() — RemoteUserStore if CONTER_AUTH_URL set, else UserStore
+├── sso/
+│   ├── __init__.py                     # exports SSO_COOKIE_NAME, issue_token, validate_token, install_sso_central, install_sso_gate
+│   ├── token.py                        # signed conter_sso token (itsdangerous, salt conter-sso-v1)
+│   └── integration.py                  # install_sso_central (issuer: cookie mirrors session, /sso/logout) + install_sso_gate (subapp: cookie is identity source, redirects to Central login, intercepts login/logout, sliding refresh)
 ├── auth_ui/
 │   ├── __init__.py                     # exports create_auth_blueprint
 │   ├── blueprint.py                    # 16-route Flask blueprint factory

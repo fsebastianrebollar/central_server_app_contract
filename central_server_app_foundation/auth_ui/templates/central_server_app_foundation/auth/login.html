@@ -44,6 +44,9 @@
             {% endwith %}
 
             <form class="login-form" method="POST" action="{{ url_for('auth.login') }}">
+                {% if auth_login_next %}
+                <input type="hidden" name="next" value="{{ auth_login_next }}">
+                {% endif %}
                 <div class="login-field">
                     <label for="username">{{ _('Username') }}</label>
                     <input type="text" id="username" name="username" class="setup-input" autocomplete="username" autofocus>

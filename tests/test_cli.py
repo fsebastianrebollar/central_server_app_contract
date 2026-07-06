@@ -129,7 +129,8 @@ def test_handle_preboot_flags_info_prints_json_and_exits():
 def _clean_env(monkeypatch):
     """Scrub CONTER_* and LOG_LEVEL so we observe exactly what the helper sets."""
     for k in ("CONTER_DATA_DIR", "CONTER_SHUTDOWN_TOKEN",
-              "CONTER_URL_PREFIX", "LOG_LEVEL", "CONTER_LOG_LEVEL"):
+              "CONTER_URL_PREFIX", "LOG_LEVEL", "CONTER_LOG_LEVEL",
+              "CONTER_AUTH_URL", "CONTER_AUTH_KEY", "CONTER_SSO_SECRET"):
         monkeypatch.delenv(k, raising=False)
 
 
@@ -181,6 +182,30 @@ def test_apply_contract_env_skips_empty_prefix(monkeypatch):
     cli.apply_contract_env(args)
     import os
     assert "CONTER_URL_PREFIX" not in os.environ
+
+
+def test_apply_contract_env_propagates_auth_flags(monkeypatch):
+    _clean_env(monkeypatch)
+    args = cli.build_parser().parse_args([
+        "--auth-url", "http://127.0.0.1:5000/",
+        "--auth-key", "svc-key",
+        "--sso-secret", "sso-sec",
+    ])
+    cli.apply_contract_env(args)
+    import os
+    assert os.environ["CONTER_AUTH_URL"] == "http://127.0.0.1:5000"
+    assert os.environ["CONTER_AUTH_KEY"] == "svc-key"
+    assert os.environ["CONTER_SSO_SECRET"] == "sso-sec"
+
+
+def test_apply_contract_env_skips_auth_flags_when_unset(monkeypatch):
+    _clean_env(monkeypatch)
+    args = cli.build_parser().parse_args([])
+    cli.apply_contract_env(args)
+    import os
+    assert "CONTER_AUTH_URL" not in os.environ
+    assert "CONTER_AUTH_KEY" not in os.environ
+    assert "CONTER_SSO_SECRET" not in os.environ
 
 
 # ---------------------------------------------------------------------------

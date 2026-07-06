@@ -36,7 +36,30 @@ from flask import (
     url_for,
 )
 
+from urllib.parse import urlsplit
+
 from central_server_app_foundation.auth import UserStore
+
+
+def _safe_next_url(raw: str) -> str:
+    """Validate a post-login redirect target against open-redirect abuse.
+
+    Accepts relative paths and absolute http(s) URLs whose hostname
+    matches the one the browser used for this request — any port. The
+    port latitude is deliberate: Conter apps share one host on
+    different ports and the SSO flow bounces between them.
+    """
+    raw = (raw or "").strip()
+    if not raw:
+        return ""
+    if raw.startswith("/") and not raw.startswith("//"):
+        return raw
+    parts = urlsplit(raw)
+    if parts.scheme not in ("http", "https") or not parts.hostname:
+        return ""
+    if parts.hostname != request.host.split(":")[0]:
+        return ""
+    return raw
 
 
 def _identity(s: str, **_kwargs: Any) -> str:
@@ -168,14 +191,20 @@ def create_auth_blueprint(
             "auth_login_allow_guest": allow_guest,
             "auth_protected_user": protected_user,
             "auth_chassis_css_url": chassis_css,
+            "auth_users_managed_centrally": bool(
+                getattr(user_store, "is_remote", False)
+            ),
         }
 
     # --- Login / logout ----------------------------------------------------
 
     @bp.route("/login", methods=["GET", "POST"])
     def login():
+        next_url = _safe_next_url(
+            request.form.get("next") or request.args.get("next") or ""
+        )
         if session.get("user_id"):
-            return redirect(url_for(post_login_endpoint))
+            return redirect(next_url or url_for(post_login_endpoint))
 
         if request.method == "POST":
             username = request.form.get("username", "").strip()
@@ -183,16 +212,16 @@ def create_auth_blueprint(
             user = user_store.authenticate(username, password)
             if user is None:
                 flash(gt("Invalid username or password."), "error")
-                return render_template(login_template)
+                return render_template(login_template, auth_login_next=next_url)
             _set_identity(user)
             if on_login_hook is not None:
                 try:
                     on_login_hook(user, session)
                 except Exception:
                     current_app.logger.exception("auth on_login_hook failed")
-            return redirect(url_for(post_login_endpoint))
+            return redirect(next_url or url_for(post_login_endpoint))
 
-        return render_template(login_template)
+        return render_template(login_template, auth_login_next=next_url)
 
     @bp.route("/login/guest")
     def login_guest():

@@ -16,7 +16,12 @@
         </div>
     </div>
 
-    {% if is_admin %}
+    {% if auth_users_managed_centrally %}
+    <div class="card-section card-section-last">
+        <h3 class="section-label">{{ _('Users') }}</h3>
+        <p class="text-secondary">{{ _('User accounts and roles are managed centrally from Conter Central.') }}</p>
+    </div>
+    {% elif is_admin %}
     <div class="card-section">
         <h3 class="section-label">{{ _('Create User') }}</h3>
         <p class="text-secondary">{{ _('Add a new user to the system with a username and password.') }}</p>

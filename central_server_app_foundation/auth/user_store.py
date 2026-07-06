@@ -58,6 +58,8 @@ class UserStore:
       translated error messages via `raise ValueError(_(...))`.
     """
 
+    is_remote = False
+
     def __init__(
         self,
         *,

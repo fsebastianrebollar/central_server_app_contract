@@ -31,5 +31,13 @@ from central_server_app_foundation.auth.user_store import (
     UserStore,
     can_publish,
 )
+from central_server_app_foundation.auth.remote_store import RemoteUserStore
+from central_server_app_foundation.auth.factory import make_user_store
 
-__all__ = ["UserStore", "VALID_ROLES", "can_publish"]
+__all__ = [
+    "UserStore",
+    "RemoteUserStore",
+    "make_user_store",
+    "VALID_ROLES",
+    "can_publish",
+]
