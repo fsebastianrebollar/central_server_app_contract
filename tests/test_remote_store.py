@@ -11,8 +11,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 
-from central_server_app_foundation.auth import RemoteUserStore, make_user_store
-from central_server_app_foundation.auth.user_store import UserStore
+from central_server_app_foundation.auth import (
+    RemoteUserStore,
+    remote_user_store_from_env,
+)
 
 SERVICE_KEY = "svc-key-123"
 
@@ -139,40 +141,30 @@ def test_init_schema_is_noop(store):
     store.init_schema()  # must not raise nor call the network
 
 
-def test_is_remote_flags():
+def test_is_remote_flag():
     assert RemoteUserStore.is_remote is True
-    assert UserStore.is_remote is False
 
 
 # ---------------------------------------------------------------------------
 # Factory
 # ---------------------------------------------------------------------------
 
-def test_factory_local_by_default(tmp_path, monkeypatch):
+def test_factory_none_outside_central_mode(monkeypatch):
     monkeypatch.delenv("CONTER_AUTH_URL", raising=False)
     monkeypatch.delenv("CONTER_AUTH_KEY", raising=False)
-    store = make_user_store(
-        db_path=str(tmp_path / "auth.db"), admin_user="a", admin_pass="b"
-    )
-    assert isinstance(store, UserStore)
+    assert remote_user_store_from_env() is None
 
 
-def test_factory_remote_from_env(tmp_path, monkeypatch):
+def test_factory_remote_from_env(monkeypatch):
     monkeypatch.setenv("CONTER_AUTH_URL", "http://127.0.0.1:5000")
     monkeypatch.setenv("CONTER_AUTH_KEY", "k")
-    store = make_user_store(
-        db_path=str(tmp_path / "auth.db"), admin_user="a", admin_pass="b"
-    )
+    store = remote_user_store_from_env()
     assert isinstance(store, RemoteUserStore)
 
 
-def test_factory_explicit_args_beat_env(tmp_path, monkeypatch):
+def test_factory_explicit_args_beat_env(monkeypatch):
     monkeypatch.delenv("CONTER_AUTH_URL", raising=False)
-    store = make_user_store(
-        db_path=str(tmp_path / "auth.db"),
-        admin_user="a",
-        admin_pass="b",
-        auth_url="https://central:5000",
-        auth_key="k",
+    store = remote_user_store_from_env(
+        auth_url="https://central:5000", auth_key="k"
     )
     assert isinstance(store, RemoteUserStore)

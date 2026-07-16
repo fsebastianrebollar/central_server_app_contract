@@ -1,11 +1,15 @@
-"""Store factory — local SQLite or remote Central, decided by env.
+"""Remote store factory — builds a ``RemoteUserStore`` from the contract env.
 
-Apps call `make_user_store(...)` with the exact arguments they used
-to pass to `UserStore`. When the supervisor launched the app with
-`--auth-url` / `--auth-key` (contract v1.4, propagated as
-`CONTER_AUTH_URL` / `CONTER_AUTH_KEY`), a `RemoteUserStore` is
-returned instead and the local arguments are simply ignored. Without
-those env vars the behaviour is byte-for-byte the pre-v1.4 one.
+When the supervisor launches an app in central mode (contract v1.4,
+``--auth-url`` / ``--auth-key`` propagated as ``CONTER_AUTH_URL`` /
+``CONTER_AUTH_KEY``), this returns the remote store; otherwise it
+returns ``None`` and the caller keeps whatever local store its chassis
+provides. Apps on ``control_foundation`` wire it in one line:
+
+    create_control_app(..., user_store=remote_user_store_from_env())
+
+``user_store=None`` there means "build the local SQLite store", so the
+same line covers both launch modes.
 """
 from __future__ import annotations
 
@@ -13,37 +17,29 @@ import os
 from typing import Callable
 
 from central_server_app_foundation.auth.remote_store import RemoteUserStore
-from central_server_app_foundation.auth.user_store import (
-    VALID_ROLES,
-    UserStore,
-    _default_gettext,
-)
+from central_server_app_foundation.auth.roles import VALID_ROLES, _default_gettext
 
 
-def make_user_store(
+def remote_user_store_from_env(
     *,
-    db_path: str | Callable[[], str],
-    admin_user: str,
-    admin_pass: str,
     valid_roles: tuple[str, ...] = VALID_ROLES,
     gettext: Callable[..., str] = _default_gettext,
     auth_url: str | None = None,
     auth_key: str | None = None,
-) -> UserStore | RemoteUserStore:
-    """Return the right store for the current launch mode."""
+) -> RemoteUserStore | None:
+    """Return the remote store for central mode, or ``None`` outside it.
+
+    Explicit ``auth_url`` / ``auth_key`` beat the env vars — useful in
+    tests and in apps that resolve the launch flags themselves.
+    """
     auth_url = auth_url or os.environ.get("CONTER_AUTH_URL", "")
-    auth_key = auth_key if auth_key is not None else os.environ.get("CONTER_AUTH_KEY", "")
-    if auth_url:
-        return RemoteUserStore(
-            base_url=auth_url,
-            service_key=auth_key,
-            valid_roles=valid_roles,
-            gettext=gettext,
-        )
-    return UserStore(
-        db_path=db_path,
-        admin_user=admin_user,
-        admin_pass=admin_pass,
+    auth_key = auth_key if auth_key is not None else os.environ.get(
+        "CONTER_AUTH_KEY", "")
+    if not auth_url:
+        return None
+    return RemoteUserStore(
+        base_url=auth_url,
+        service_key=auth_key,
         valid_roles=valid_roles,
         gettext=gettext,
     )

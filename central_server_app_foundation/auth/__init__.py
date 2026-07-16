@@ -1,43 +1,30 @@
-"""Authentication chassis — SQLite user store + role helpers.
+"""Remote auth — the credential side of the CONTER contract (v1.4).
 
-Every Conter app authenticates the same way: local SQLite `users`
-table, werkzeug password hashing, three roles (`operator`,
-`supervisor`, `admin`), one bootstrap admin created on first boot.
-This package ships that logic as a class so each app only has to
-decide where the DB lives and which bootstrap admin to seed.
+This package no longer ships a local user store: that chassis moved to
+``control_foundation`` (``control_foundation.ui.auth.UserStore``). What
+remains is what only makes sense against the Central:
 
-The canonical usage (see `app/services/auth_service.py` in
-conter-stats for a working example):
+- ``RemoteUserStore`` — duck type of a local store, backed by the
+  Central's ``/api/auth/v1`` API (bearer service key, urllib, stdlib).
+- ``remote_user_store_from_env`` — returns it when the supervisor
+  launched the app in central mode (``CONTER_AUTH_URL`` /
+  ``CONTER_AUTH_KEY``), or ``None`` outside it.
+- ``VALID_ROLES`` / ``can_publish`` — the role taxonomy that travels
+  over the wire (API responses, SSO cookie payload).
 
-    from central_server_app_foundation.auth import UserStore, can_publish, VALID_ROLES
+Canonical wiring in a ``control_foundation`` app:
 
-    _store = UserStore(
-        db_path=lambda: _DB_PATH,              # late binding for tests
-        admin_user=os.environ.get("TEMPLATE_ADMIN_USER", "admin"),
-        admin_pass=os.environ.get("TEMPLATE_ADMIN_PASS", "changeme"),
-        gettext=flask_babel.gettext,           # optional, identity default
-    )
+    from central_server_app_foundation.auth import remote_user_store_from_env
 
-    init_auth_db = _store.init_schema
-    authenticate = _store.authenticate
-    create_user  = _store.create_user
-    ...
-
-Apps that don't use Babel can omit `gettext` — error messages fall
-back to plain English, which is still fine for logs/API responses.
+    create_control_app(..., user_store=remote_user_store_from_env())
 """
-from central_server_app_foundation.auth.user_store import (
-    VALID_ROLES,
-    UserStore,
-    can_publish,
-)
+from central_server_app_foundation.auth.factory import remote_user_store_from_env
 from central_server_app_foundation.auth.remote_store import RemoteUserStore
-from central_server_app_foundation.auth.factory import make_user_store
+from central_server_app_foundation.auth.roles import VALID_ROLES, can_publish
 
 __all__ = [
-    "UserStore",
     "RemoteUserStore",
-    "make_user_store",
+    "remote_user_store_from_env",
     "VALID_ROLES",
     "can_publish",
 ]

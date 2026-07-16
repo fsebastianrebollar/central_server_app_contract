@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "central-server-app-foundation"
-version = "0.1.0"
-description = "Shared chassis for Conter internal apps: supervisor contract, auth, wiki, settings, design system."
+version = "0.2.0"
+description = "CONTER supervisor contract: health/CLI/data-dir contract, remote auth against the Central, SSO cookie. The generic web chassis lives in control_foundation."
 requires-python = ">=3.11"
 dependencies = [
     "flask>=3.0",
     "werkzeug>=3.0",
-    "flask-babel>=4.0",
+    "itsdangerous>=2.0",
 ]
 
 [project.optional-dependencies]
@@ -19,18 +19,3 @@ test = ["pytest>=8"]
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["central_server_app_foundation*"]
-
-[tool.setuptools.package-data]
-central_server_app_foundation = [
-    "design/templates/**/*.html",
-    "design/static/*.js",
-    "design/static/*.css",
-    "design/static/fonts/*.woff2",
-    "settings_ui/templates/**/*.html",
-    "settings_ui/static/*.css",
-    "auth_ui/templates/**/*.html",
-    "i18n/translations/**/*.mo",
-    "i18n/translations/**/*.po",
-    "i18n/translations/*.pot",
-    "i18n/babel.cfg",
-]
