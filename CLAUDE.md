@@ -51,7 +51,7 @@ controlcore            actor runtime (FWObject/ObjectManager)
 |---|---|
 | conter_central_server | unpinned (tracks the default branch), imports `central_server_app_contract` |
 | ini-configurator | unpinned, same; also vendors this repo as a submodule at `libs/central_server_app_contract` |
-| conter-stats | pinned `v0.1.0` (full chassis) until migrated to control_foundation — keeps the old `central_server_app_contract` imports |
+| conter-stats | pinned `v0.1.0` (full chassis) until migrated to control_foundation — keeps the old `central_server_app_foundation` imports |
 
 ## Modules
 
