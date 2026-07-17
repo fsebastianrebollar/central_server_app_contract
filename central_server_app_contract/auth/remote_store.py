@@ -21,7 +21,7 @@ import urllib.error
 import urllib.request
 from typing import Callable
 
-from central_server_app_foundation.auth.roles import VALID_ROLES, _default_gettext
+from central_server_app_contract.auth.roles import VALID_ROLES, _default_gettext
 
 logger = logging.getLogger(__name__)
 

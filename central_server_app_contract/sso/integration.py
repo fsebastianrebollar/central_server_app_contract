@@ -12,7 +12,7 @@ from urllib.parse import urlencode, urlsplit
 
 from flask import g, redirect, request, session
 
-from central_server_app_foundation.sso.token import (
+from central_server_app_contract.sso.token import (
     SSO_COOKIE_NAME,
     issue_token,
     validate_token,

@@ -1,4 +1,4 @@
-# Claude context — central_server_app_foundation
+# Claude context — central_server_app_contract
 
 Onboarding brief for a Claude Code session working on this repo. Read it
 before touching code.
@@ -7,7 +7,7 @@ before touching code.
 
 ## What this project is (v0.2.0 — reduced scope)
 
-`central_server_app_foundation` is **the CONTER supervisor contract**:
+`central_server_app_contract` is **the CONTER supervisor contract**:
 the protocol between `conter_central_server` (portal + process
 supervisor running on plant servers) and every app it manages. It is
 deliberately small — 13 source files — and everything in it is
@@ -21,20 +21,27 @@ was cut down to the non-overlapping remainder. **Do not add generic
 chassis code back here** — if something is useful outside CONTER, it
 belongs in `control_foundation`.
 
-**GitHub**: https://github.com/fsebastianrebollar/central_server_app_foundation
-**Python package name**: `central-server-app-foundation`
-**Import root**: `central_server_app_foundation`
-**Version**: `0.2.0` · contract version: **1.4**
+**GitHub**: https://github.com/fsebastianrebollar/central_server_app_contract
+**Python package name**: `central-server-app-contract`
+**Import root**: `central_server_app_contract`
+**Version**: `0.3.0` · contract version: **1.4**
 
-The last full-chassis release is tagged **`v0.1.0`**. Apps not yet
-migrated to `control_foundation` pin that tag in their pyproject.
+The name was `central-server-app-foundation` up to v0.2.0; v0.3.0 renamed
+it (repo, distribution and import root) to match what the package
+actually became in v0.2.0 — a contract, not a foundation. The rename is
+the *only* change in v0.3.0: no code, no contract version bump.
+
+The last full-chassis release is tagged **`v0.1.0`**, which predates the
+rename and therefore still builds `central-server-app-foundation` with
+the old import root. Apps not yet migrated to `control_foundation` pin
+that tag in their pyproject and keep the old imports.
 
 ### Layering
 
 ```
 controlcore            actor runtime (FWObject/ObjectManager)
   └─ control_foundation    generic chassis: runtime+UI+auth+settings+status
-       └─ central_server_app_foundation   ← THIS: the CONTER protocol
+       └─ central_server_app_contract   ← THIS: the CONTER protocol
             └─ apps    conter_central_server, conter-stats, ini-configurator
 ```
 
@@ -42,9 +49,9 @@ controlcore            actor runtime (FWObject/ObjectManager)
 
 | App | Status |
 |---|---|
-| conter_central_server | pinned `v0.1.0` (full chassis) until migrated to control_foundation |
-| conter-stats | pinned `v0.1.0`, same plan |
-| ini-configurator | pinned `v0.1.0`, same plan |
+| conter_central_server | unpinned (tracks the default branch), imports `central_server_app_contract` |
+| ini-configurator | unpinned, same; also vendors this repo as a submodule at `libs/central_server_app_contract` |
+| conter-stats | pinned `v0.1.0` (full chassis) until migrated to control_foundation — keeps the old `central_server_app_contract` imports |
 
 ## Modules
 

@@ -1,4 +1,4 @@
-# central-server-app-foundation
+# central-server-app-contract
 
 **The CONTER supervisor contract.** This package defines the protocol
 between `conter_central_server` and every app it manages — and nothing
@@ -7,12 +7,22 @@ settings, wiki, i18n) now lives in
 [`control_foundation`](https://github.com/fsebastianrebollar/control_foundation);
 apps consume both packages, each for what it owns.
 
-> **Migrating from ≤ v0.1.0?** The last full-chassis release is tagged
-> `v0.1.0`. Apps that still import `auth_ui`, `design`, `settings`,
-> `settings_ui`, `wiki` or `i18n` must pin that tag:
+> **Renamed in v0.3.0.** The package was `central-server-app-foundation`
+> (import root `central_server_app_foundation`) up to v0.2.0; the repo
+> lived at `.../central_server_app_foundation`. Nothing but the name
+> changed — update the dependency and rewrite the import root:
 >
 > ```toml
-> "central-server-app-foundation @ git+https://github.com/fsebastianrebollar/central_server_app_foundation.git@v0.1.0"
+> "central-server-app-contract @ git+https://github.com/fsebastianrebollar/central_server_app_contract.git"
+> ```
+
+> **Still on ≤ v0.1.0?** The last full-chassis release is tagged
+> `v0.1.0`. Apps that still import `auth_ui`, `design`, `settings`,
+> `settings_ui`, `wiki` or `i18n` must pin that tag — and because that
+> tag predates the rename, it still builds the *old* distribution name:
+>
+> ```toml
+> "central-server-app-foundation @ git+https://github.com/fsebastianrebollar/central_server_app_contract.git@v0.1.0"
 > ```
 
 ## What lives here
@@ -29,9 +39,9 @@ apps consume both packages, each for what it owns.
 ## Wiring in a `control_foundation` app
 
 ```python
-from central_server_app_foundation.auth import remote_user_store_from_env
-from central_server_app_foundation.contract import create_health_blueprint
-from central_server_app_foundation.sso import install_sso_gate
+from central_server_app_contract.auth import remote_user_store_from_env
+from central_server_app_contract.contract import create_health_blueprint
+from central_server_app_contract.sso import install_sso_gate
 
 def flask_factory(ui):
     def gate(app):

@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 
-from central_server_app_foundation.auth import (
+from central_server_app_contract.auth import (
     RemoteUserStore,
     remote_user_store_from_env,
 )

@@ -16,8 +16,8 @@ from __future__ import annotations
 import os
 from typing import Callable
 
-from central_server_app_foundation.auth.remote_store import RemoteUserStore
-from central_server_app_foundation.auth.roles import VALID_ROLES, _default_gettext
+from central_server_app_contract.auth.remote_store import RemoteUserStore
+from central_server_app_contract.auth.roles import VALID_ROLES, _default_gettext
 
 
 def remote_user_store_from_env(

@@ -1,4 +1,4 @@
-"""Unit tests for `central_server_app_foundation.contract.data_paths`.
+"""Unit tests for `central_server_app_contract.contract.data_paths`.
 
 Library-level coverage for the `CONTER_DATA_DIR` resolver. App-level
 tests in conter-stats still verify that each service (`settings_service`,
@@ -11,7 +11,7 @@ import os
 
 import pytest
 
-from central_server_app_foundation.contract import data_paths
+from central_server_app_contract.contract import data_paths
 
 
 # ---------------------------------------------------------------------------

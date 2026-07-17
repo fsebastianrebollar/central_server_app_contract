@@ -1,4 +1,4 @@
-"""Tests for `central_server_app_foundation.sso` — token + integrations.
+"""Tests for `central_server_app_contract.sso` — token + integrations.
 
 Token: roundtrip, tamper rejection, expiry, wrong secret.
 Central: cookie issued at login, refreshed when stale, deleted at
@@ -14,7 +14,7 @@ import time
 import pytest
 from flask import Flask, session
 
-from central_server_app_foundation.sso import (
+from central_server_app_contract.sso import (
     SSO_COOKIE_NAME,
     install_sso_central,
     install_sso_gate,

@@ -25,12 +25,12 @@ timestamp; expiry is enforced at validation time against the session
 lifetime, and any app refreshes the cookie while the user is active
 (sliding expiry).
 """
-from central_server_app_foundation.sso.token import (
+from central_server_app_contract.sso.token import (
     SSO_COOKIE_NAME,
     issue_token,
     validate_token,
 )
-from central_server_app_foundation.sso.integration import (
+from central_server_app_contract.sso.integration import (
     install_sso_central,
     install_sso_gate,
 )

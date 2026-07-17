@@ -12,7 +12,7 @@ apps that ship a pywebview window) and hands control back.
 
 Typical usage:
 
-    from central_server_app_foundation.contract.cli import (
+    from central_server_app_contract.contract.cli import (
         build_parser, handle_preboot_flags, apply_contract_env,
     )
 
