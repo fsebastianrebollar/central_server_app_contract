@@ -52,7 +52,7 @@ def flask_factory(ui):
 
 The three `create_control_app` parameters used above (`user_store`,
 `enable_health`, `pre_login_guard`) exist since `control_foundation`
-`feat/conter-integration-hooks`.
+1.1 (with `auth_options` and `is_supervisor_resolver` joining in 1.2).
 
 ## Contract summary (v1.4)
 
