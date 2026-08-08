@@ -35,6 +35,7 @@ apps consume both packages, each for what it owns.
 | `version` | Bundled `version.txt` (PyInstaller) + pyproject reader + uptime helper. |
 | `auth` | `RemoteUserStore` against the Central's `/api/auth/v1` (contract v1.4), `remote_user_store_from_env()`, and the role taxonomy (`VALID_ROLES`, `can_publish`). |
 | `sso` | The `conter_sso` signed cookie: `install_sso_central` (issuer, on the Central) and `install_sso_gate` (subapps), sliding expiry, global logout via `GET /sso/logout`. |
+| `license` | Node licence (v1.5): the Central serves the signed `.lic` over `/api/license/v1/current`; each subapp validates it itself with `CentralLicenseGate`. |
 
 ## Wiring in a `control_foundation` app
 
@@ -63,6 +64,62 @@ def flask_factory(ui):
 The three `create_control_app` parameters used above (`user_store`,
 `enable_health`, `pre_login_guard`) exist since `control_foundation`
 1.1 (with `auth_options` and `is_supervisor_resolver` joining in 1.2).
+
+## Node licence (v1.5)
+
+A CONTER `.lic` is issued **per machine** (the machine code comes from the
+hardware) and covers every app on that node — profile `conter-node`, not
+one profile per app. The Central is its custodian: it holds the file and
+serves it to anyone presenting a service key. **Each subapp validates it
+itself.**
+
+Why validate locally instead of trusting a verdict: a tampered Central
+could answer "yes" to everything. Verifying the Ed25519 signature in each
+process means bypassing the gate requires the private key, which ships in
+no artifact. The price is that subapps bundle the crypto (`license_core`);
+that is a deliberate trade.
+
+Serving the `.lic` over HTTP does not expose it — it is a **signed**
+document, not a secret. Copied to another machine it meets a different
+machine code.
+
+```
+GET /api/license/v1/current
+Headers: Authorization: Bearer <service-key>
+→ 200  {"ok": true, "license": "<.lic text>", "profile": "conter-node"}
+→ 404  the Central has no licence installed
+→ 401  bad or missing service key
+```
+
+```python
+from central_server_app_contract.license import CentralLicenseGate, LicenseClient
+
+gate = CentralLicenseGate(
+    client=LicenseClient(base_url=os.environ["CONTER_AUTH_URL"],
+                         service_key=os.environ["CONTER_AUTH_KEY"]),
+    verifier=lambda text: my_license_gate.verify(text),   # license_core
+    on_giving_up=lambda why: request_shutdown(),          # ordered stop
+)
+boot_guard = make_license_boot_guard(gate, ...)           # control_foundation
+```
+
+Four decisions baked into `CentralLicenseGate`:
+
+1. **The subapp validates.** It asks for the `.lic` and checks the
+   signature locally.
+2. **On boot and every ~100 minutes** (`DEFAULT_REFRESH_SECONDS = 6000`).
+   Verifying is expensive and a licence changes once a year. Accepted
+   trade-off: an expiring licence stays admitted until the next refresh.
+3. **A Central that answers "no licence" is not retried** — insisting
+   would not change the answer, and it is no reason to shut down: the
+   degraded screen is the right outcome.
+4. **A Central that does not answer is retried** (`DEFAULT_RETRIES = 3`,
+   one minute apart) before giving up. The Central restarts for ordinary
+   reasons — a version upgrade, a port change, the panel's restart button
+   — and shutting down on the first failure would turn every restart into
+   a plant stoppage. Once the retries are exhausted, `on_giving_up` fires
+   **once**; that is where the app wires its ordered shutdown. The gate
+   never kills a process itself.
 
 ## Contract summary (v1.4)
 

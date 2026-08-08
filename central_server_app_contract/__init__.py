@@ -15,9 +15,12 @@ that only makes sense inside a CONTER plant:
                         + role taxonomy (VALID_ROLES, can_publish)
 - sso                 — conter_sso signed cookie: issuer (Central) and
                         gate (subapps), sliding expiry, global logout
+- license             — node licence: the Central serves the signed
+                        ``.lic``, each subapp validates it itself
+                        (CentralLicenseGate, LicenseClient)
 
 The last full-chassis release is tagged ``v0.1.0``; apps that have not
 yet migrated to ``control_foundation`` must pin that tag.
 """
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
