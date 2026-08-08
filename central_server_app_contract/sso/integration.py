@@ -194,8 +194,11 @@ def install_sso_gate(
 
         if endpoint == logout_endpoint:
             # Logout is global: clear the local mirror and hand over
-            # to the Central, which deletes the SSO cookie.
+            # to the Central, which deletes the SSO cookie. Drop the
+            # identity too — otherwise `_sso_refresh` would re-issue
+            # the cookie on this very response and undo the logout.
             session.clear()
+            g._sso_identity = None
             return redirect(f"{_central_base()}/sso/logout")
 
         if identity is not None:
@@ -219,9 +222,16 @@ def install_sso_gate(
     @app.after_request
     def _sso_refresh(response):
         identity = getattr(g, "_sso_identity", None)
-        if identity is not None and identity["age_seconds"] > refresh_after_seconds:
-            # Keep the sliding window moving while the user works in
-            # this app. Cookies are host-scoped (ports ignored), so
-            # this refresh is visible to the Central and siblings.
-            _set_cookie(response, secret, get_max_age())
+        if identity is None or identity["age_seconds"] <= refresh_after_seconds:
+            return response
+        # Only refresh while the mirrored session is actually signed
+        # in: a request that clears it (logout, a view dropping the
+        # identity) must not get a fresh cookie — and `_set_cookie`
+        # reads `session["user_id"]`, so it would raise besides.
+        if not session.get("user_id") or session.get("is_guest"):
+            return response
+        # Keep the sliding window moving while the user works in
+        # this app. Cookies are host-scoped (ports ignored), so
+        # this refresh is visible to the Central and siblings.
+        _set_cookie(response, secret, get_max_age())
         return response

@@ -247,10 +247,47 @@ def test_gate_login_passes_through_when_authenticated(gate_app):
 
 def test_gate_intercepts_logout_to_central(gate_app):
     client = gate_app.test_client()
-    client.set_cookie(SSO_COOKIE_NAME, _token())
+    client.set_cookie(SSO_COOKIE_NAME, _token(), domain="plant-server")
     resp = client.post("/logout", base_url="http://plant-server:5001")
     assert resp.status_code == 302
     assert resp.headers["Location"] == "http://plant-server:5000/sso/logout"
+
+
+def test_gate_logout_with_stale_token_does_not_reissue(gate_app):
+    """Logout must win over the sliding refresh.
+
+    Regression: the gate stored the identity in `g` before checking
+    the endpoint, so `_sso_refresh` re-issued the cookie on the very
+    logout response — and blew up on `session["user_id"]` because the
+    logout had already cleared the session. Any logout more than
+    `refresh_after_seconds` after the last refresh 500'd instead of
+    handing over to the Central.
+    """
+    app = Flask(__name__)
+    app.config["SECRET_KEY"] = "t"
+    install_sso_gate(
+        app,
+        secret=SECRET,
+        central_url="http://127.0.0.1:5000",
+        max_age_seconds=1800,
+        refresh_after_seconds=1,
+        logout_endpoint="logout",
+    )
+
+    @app.route("/logout", methods=["POST"])
+    def logout():
+        session.clear()
+        return "local logout"
+
+    client = app.test_client()
+    # Domain must match the base_url below or the cookie never travels
+    # and the gate would take the anonymous path instead.
+    client.set_cookie(SSO_COOKIE_NAME, _token(), domain="plant-server")
+    time.sleep(1.2)  # token is now stale — the refresh window has passed
+    resp = client.post("/logout", base_url="http://plant-server:5001")
+    assert resp.status_code == 302
+    assert resp.headers["Location"] == "http://plant-server:5000/sso/logout"
+    assert _extract_sso_cookie(resp) is None
 
 
 def test_gate_expired_token_redirects(gate_app):
