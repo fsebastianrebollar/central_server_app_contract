@@ -92,16 +92,44 @@ Headers: Authorization: Bearer <service-key>
 ```
 
 ```python
-from central_server_app_contract.license import CentralLicenseGate, LicenseClient
+import time
+from central_server_app_contract.license import (
+    CentralLicenseGate, LicenseClient, NODE_PROFILE,
+)
+from control_foundation.paths import app_data_dir
+from license_core import compute_fingerprint, verify_license
+
+# The anchor IS local: it measures the passing of time on THIS machine.
+# The `.lic` is not — the Central holds it and serves it over HTTP.
+anchor = app_data_dir() / "license" / "time_anchor.dat"
+anchor.parent.mkdir(parents=True, exist_ok=True)
+
+def verify(lic_text):
+    return verify_license(
+        lic_text,
+        current_fingerprint=compute_fingerprint(),
+        system_now=int(time.time()),
+        anchor_path=anchor,
+        expected_profile=NODE_PROFILE,
+        max_internal_ts=0, max_os_ts=0,     # layers 2 and 3, if the app has them
+    )
 
 gate = CentralLicenseGate(
     client=LicenseClient(base_url=os.environ["CONTER_AUTH_URL"],
                          service_key=os.environ["CONTER_AUTH_KEY"]),
-    verifier=lambda text: my_license_gate.verify(text),   # license_core
+    verifier=verify,
     on_giving_up=lambda why: request_shutdown(),          # ordered stop
 )
 boot_guard = make_license_boot_guard(gate, ...)           # control_foundation
 ```
+
+The verifier calls `license_core.verify_license` **directly**, and not
+`control_foundation`'s `LicenseGate`, on purpose: that gate verifies the
+`license.dat` **on disk**, which in the node model never exists locally —
+the Central custodies the file. Its equivalent for loose text is private
+(`_verify`), so wrapping it would tie the app to an internal detail. If
+the chassis ever exposes it, this becomes a one-liner and recovers the
+gate's cache and dev/prod toggle.
 
 Four decisions baked into `CentralLicenseGate`:
 
@@ -132,6 +160,26 @@ Four decisions baked into `CentralLicenseGate`:
 - **Env**: `CONTER_DATA_DIR`, `CONTER_SHUTDOWN_TOKEN`,
   `CONTER_URL_PREFIX`, `CONTER_AUTH_URL`, `CONTER_AUTH_KEY`,
   `CONTER_SSO_SECRET`, `LOG_LEVEL`.
+- **Log level**: precedence is flag > `CONTER_LOG_LEVEL` > `LOG_LEVEL`,
+  and the canonical tuple is exported as
+  `contract.LOG_LEVEL_ENV_VARS` — pass it to the chassis instead of
+  writing the literal:
+
+  ```python
+  from central_server_app_contract.contract import LOG_LEVEL_ENV_VARS
+  from control_foundation.runtime.logging_pref import resolve_cli_level
+
+  level = resolve_cli_level(args.log_level, env_vars=LOG_LEVEL_ENV_VARS)
+  setup_logging_from_conf(config_dir(), config_key=..., level=level)
+  ```
+
+  `apply_contract_env` exports `LOG_LEVEL` **only when someone asked for a
+  level** (the flag on the command line, or one of those variables already
+  set). Since v0.5.0: exporting it always made the chassis believe a level
+  had been requested on every boot, which left the `.conf`'s `[logging]`
+  section decorative — the operator edited it from Settings, saved, and
+  nothing happened. That also means the order of these two calls no longer
+  matters.
 - **Central auth**: subapps launched with `--auth-url`/`--auth-key`
   verify credentials against the Central; with `--sso-secret` the
   shared `conter_sso` cookie replaces the local login.

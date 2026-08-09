@@ -23,4 +23,4 @@ The last full-chassis release is tagged ``v0.1.0``; apps that have not
 yet migrated to ``control_foundation`` must pin that tag.
 """
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"

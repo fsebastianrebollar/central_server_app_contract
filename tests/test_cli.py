@@ -134,12 +134,47 @@ def _clean_env(monkeypatch):
         monkeypatch.delenv(k, raising=False)
 
 
-def test_apply_contract_env_sets_log_level_always(monkeypatch):
+def test_apply_contract_env_propagates_a_requested_log_level(monkeypatch):
     _clean_env(monkeypatch)
     args = cli.build_parser().parse_args(["--log-level", "WARNING"])
-    cli.apply_contract_env(args)
+    cli.apply_contract_env(args, argv=["--log-level", "WARNING"])
     import os
     assert os.environ["LOG_LEVEL"] == "WARNING"
+
+
+def test_apply_contract_env_does_not_invent_a_log_level(monkeypatch):
+    """Sin flag ni variable, `LOG_LEVEL` NO se exporta.
+
+    Antes se exportaba siempre —`--log-level` tiene `default="INFO"`, así
+    que `args.log_level` viene relleno— y eso reintroducía en toda app
+    CONTER el fallo que control_foundation 1.12 vino a matar: su
+    `resolve_cli_level` mira el entorno para saber si el operador pidió un
+    nivel, veía la variable puesta, y la sección `[logging]` del `.conf`
+    quedaba decorativa.
+    """
+    import os
+    _clean_env(monkeypatch)
+    args = cli.build_parser().parse_args([])
+    cli.apply_contract_env(args, argv=[])
+    assert "LOG_LEVEL" not in os.environ
+
+
+def test_a_log_level_from_the_environment_still_counts(monkeypatch):
+    """`CONTER_LOG_LEVEL` es petición explícita, y manda con SU valor —
+    no con el default del parser."""
+    import os
+    _clean_env(monkeypatch)
+    monkeypatch.setenv("CONTER_LOG_LEVEL", "DEBUG")
+    args = cli.build_parser().parse_args([])
+    cli.apply_contract_env(args, argv=[])
+    assert os.environ["LOG_LEVEL"] == "DEBUG"
+
+
+def test_the_canonical_env_var_tuple_is_exported():
+    """La precedencia que el contrato promete desde v1.1, en un solo sitio:
+    `control_foundation.resolve_cli_level` la necesita y no puede
+    conocerla, porque `CONTER_*` es un prefijo de marca."""
+    assert cli.LOG_LEVEL_ENV_VARS == ("CONTER_LOG_LEVEL", "LOG_LEVEL")
 
 
 def test_apply_contract_env_propagates_data_dir(monkeypatch, tmp_path):

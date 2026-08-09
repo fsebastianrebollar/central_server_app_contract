@@ -45,6 +45,42 @@ from typing import Callable
 
 VALID_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
 
+# La precedencia que el contrato promete desde v1.1: flag > CONTER_LOG_LEVEL
+# > LOG_LEVEL. Exportada porque `control_foundation.resolve_cli_level` la
+# necesita y NO puede conocerla: `CONTER_*` es un prefijo de marca, y el
+# chassis es genérico por regla. Sin esto, cada app copia el literal y el
+# día que se añada una variable hay que acordarse de las tres.
+LOG_LEVEL_ENV_VARS = ("CONTER_LOG_LEVEL", "LOG_LEVEL")
+LOG_LEVEL_FLAGS = ("--log-level",)
+
+
+def requested_log_level(args: "argparse.Namespace | None" = None, *,
+                        argv: "list[str] | None" = None) -> "str | None":
+    """El nivel de log **solo si alguien lo pidió**; si no, ``None``.
+
+    "Lo pidió" = el flag aparece en la línea de comandos (en su forma
+    exacta: `--log-level X` o `--log-level=X`) o hay una de las variables
+    de :data:`LOG_LEVEL_ENV_VARS` puesta con un nivel válido — y entonces
+    manda el valor de la **variable**, no el default del parser.
+
+    Existe porque `--log-level` tiene `default="INFO"`, así que
+    `args.log_level` viene relleno SIEMPRE y no distingue "me pidieron
+    INFO" de "nadie dijo nada". Esa diferencia decide si el nivel pisa la
+    sección ``[logging]`` del `.conf` — la que el operador edita desde
+    Settings— o si manda el fichero.
+    """
+    argumentos = list(sys.argv[1:] if argv is None else argv)
+    if any(a == f or a.startswith(f + "=")
+           for a in argumentos for f in LOG_LEVEL_FLAGS):
+        nivel = getattr(args, "log_level", None) if args is not None else None
+        if nivel in VALID_LOG_LEVELS:
+            return nivel
+    for var in LOG_LEVEL_ENV_VARS:
+        valor = (os.environ.get(var) or "").strip().upper()
+        if valor in VALID_LOG_LEVELS:
+            return valor
+    return None
+
 
 def build_parser(
     *,
@@ -175,17 +211,41 @@ def handle_preboot_flags(
         sys.exit(0)
 
 
-def apply_contract_env(args: argparse.Namespace) -> None:
+def apply_contract_env(args: argparse.Namespace, *,
+                       argv: "list[str] | None" = None) -> None:
     """Propagate parsed contract flags to the `CONTER_*` env vars.
+
+    `argv` existe para los tests y para quien parsee una línea de comandos
+    que no sea `sys.argv`: es lo que se mira para saber si el nivel de log
+    se pidió de verdad.
 
     Must be called BEFORE `from app import create_app` because several
     service modules resolve their paths (`_DB_PATH`, `UPLOADS_DIR`) at
     import time, and the Flask factory reads `CONTER_URL_PREFIX` at the
     top of `create_app()`.
     """
-    # --log-level always propagates — `create_app()` reads LOG_LEVEL.
-    log_level = getattr(args, "log_level", None) or "INFO"
-    os.environ["LOG_LEVEL"] = log_level
+    # El nivel se propaga SOLO si alguien lo pidió.
+    #
+    # Exportarlo siempre —lo que se hacía hasta v0.5— reintroducía en toda
+    # app CONTER el fallo que `control_foundation` 1.12 vino a matar: su
+    # `resolve_cli_level` mira el entorno para decidir si el operador pidió
+    # un nivel, y con `LOG_LEVEL` puesta en cada arranque concluía que sí.
+    # Resultado: la sección `[logging]` del `.conf` quedaba decorativa — el
+    # operador la editaba desde Settings, guardaba, y no pasaba nada. Sin
+    # error y sin test rojo.
+    #
+    # Y la trampa era peor de lo que parece, porque depende del ORDEN:
+    # `apply_contract_env` se llama pronto (propaga --data-dir y --prefix),
+    # así que llegaba antes que el resolver salvo que la app supiera
+    # invertirlos a propósito.
+    #
+    # Compatibilidad: una app que lea `LOG_LEVEL` a pelo ya no la encuentra
+    # cuando nadie pidió nivel. Su default es el mismo `INFO` que se
+    # exportaba, así que el comportamiento observable no cambia; lo que
+    # cambia es que deja de mentir sobre quién lo pidió.
+    log_level = requested_log_level(args, argv=argv)
+    if log_level:
+        os.environ["LOG_LEVEL"] = log_level
 
     data_dir = getattr(args, "data_dir", None)
     if data_dir:
