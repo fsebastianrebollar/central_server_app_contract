@@ -10,7 +10,7 @@ before touching code.
 `central_server_app_contract` is **the CONTER supervisor contract**:
 the protocol between `conter_central_server` (portal + process
 supervisor running on plant servers) and every app it manages. It is
-deliberately small — 13 source files — and everything in it is
+deliberately small — 16 source files — and everything in it is
 CONTER-specific by design.
 
 It used to be a full Flask chassis (auth UI, design system, settings,
@@ -24,7 +24,7 @@ belongs in `control_foundation`.
 **GitHub**: https://github.com/fsebastianrebollar/central_server_app_contract
 **Python package name**: `central-server-app-contract`
 **Import root**: `central_server_app_contract`
-**Version**: `0.3.0` · contract version: **1.4**
+**Version**: `0.5.0` · contract version: **1.5**
 
 The name was `central-server-app-foundation` up to v0.2.0; v0.3.0 renamed
 it (repo, distribution and import root) to match what the package
@@ -87,6 +87,15 @@ controlcore            actor runtime (FWObject/ObjectManager)
   truth, `/login` redirects to the Central, sliding expiry, logout via
   `<central>/sso/logout`). Relies on cookies ignoring the port: all
   apps share the host.
+- `license/client.py` — `LicenseClient`: fetches the signed `.lic`
+  from the Central's `GET /api/license/v1/current` (Bearer service
+  key); `LicenseUnavailable` when the Central doesn't answer.
+- `license/gate.py` — `CentralLicenseGate` (the `LicensingGate`
+  consumed by `control_foundation`): fetch, cache, validate locally
+  with `license_core`, decide. One `.lic` per machine, profile
+  `NODE_PROFILE = "conter-node"`. A "no licence" answer is not
+  retried; an unreachable Central is (`DEFAULT_RETRIES`, one minute
+  apart), then `on_giving_up` fires once.
 
 ## Wiring into a control_foundation app
 

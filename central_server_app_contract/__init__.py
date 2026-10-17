@@ -1,4 +1,4 @@
-"""Central Server App Foundation — the CONTER supervisor contract.
+"""Central Server App Contract — the CONTER supervisor contract.
 
 Reduced scope (since v0.2.0): this package is no longer a full web chassis.
 The generic chassis (auth UI, design system, settings, wiki, i18n)

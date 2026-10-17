@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "central-server-app-contract"
 version = "0.5.0"
-description = "CONTER supervisor contract: health/CLI/data-dir contract, remote auth against the Central, SSO cookie. The generic web chassis lives in control_foundation."
+description = "CONTER supervisor contract: health/CLI/data-dir contract, remote auth against the Central, SSO cookie, node licence. The generic web chassis lives in control_foundation."
 requires-python = ">=3.11"
 dependencies = [
     "flask>=3.0",

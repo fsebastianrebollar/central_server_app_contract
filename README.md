@@ -149,7 +149,7 @@ Four decisions baked into `CentralLicenseGate`:
    **once**; that is where the app wires its ordered shutdown. The gate
    never kills a process itself.
 
-## Contract summary (v1.4)
+## Contract summary (v1.5)
 
 - **Endpoints**: `GET /health` → `{status, version, uptime_seconds, db}`;
   `GET /version` → `{app, version, built, contract, display_name,
