@@ -190,3 +190,14 @@ Four decisions baked into `CentralLicenseGate`:
 pip install -e ".[test]"
 pytest
 ```
+
+
+### Optional localized descriptions
+
+`handle_preboot_flags(..., descriptions={"en": "Files", "es": "Ficheros"})`
+and `create_health_blueprint(..., app_descriptions={...})` publish the same
+optional `descriptions` map in `--info` and `/version`. Keep the original
+`description` string as a language-independent fallback. Existing callers
+can omit these arguments and retain their original payloads. Language tags
+are normalized (`es_ES` to `es-es`); malformed entries are ignored. Text is
+plain content and consumers must escape it when rendering HTML.

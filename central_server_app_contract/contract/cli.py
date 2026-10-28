@@ -187,6 +187,7 @@ def handle_preboot_flags(
     display_name: str,
     description: str,
     contract_version: str,
+    descriptions: dict[str, str] | None = None,
 ) -> None:
     """Short-circuit `--version` / `--info` before the app imports Flask.
 
@@ -207,6 +208,9 @@ def handle_preboot_flags(
             "contract": contract_version,
             "version": get_version(),
         }
+        if descriptions is not None:
+            from .metadata import normalize_descriptions
+            payload["descriptions"] = normalize_descriptions(descriptions)
         print(json.dumps(payload))
         sys.exit(0)
 

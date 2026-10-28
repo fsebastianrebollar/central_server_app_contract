@@ -37,6 +37,7 @@ def create_health_blueprint(
     get_uptime_seconds: Callable[[], int],
     db_probe: Callable[[], str],
     icon_path: Path | str | Callable[[], Path | str],
+    app_descriptions: dict[str, str] | None = None,
 ) -> Blueprint:
     """Build the supervisor-contract blueprint for this app.
 
@@ -74,8 +75,7 @@ def create_health_blueprint(
 
     @bp.get("/version")
     def version_info():
-        return jsonify(
-            {
+        payload = {
                 "app": app_name,
                 "version": get_version(),
                 "built": get_build_date(),
@@ -83,7 +83,10 @@ def create_health_blueprint(
                 "display_name": app_display_name,
                 "description": app_description,
             }
-        )
+        if app_descriptions is not None:
+            from .metadata import normalize_descriptions
+            payload["descriptions"] = normalize_descriptions(app_descriptions)
+        return jsonify(payload)
 
     @bp.get("/icon")
     def icon():
